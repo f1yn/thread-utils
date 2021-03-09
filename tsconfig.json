@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "removeComments": true,
+    "sourceMap": false,
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "rootDir": "lib",
+    "outDir": "dist",
+    "baseUrl": "lib"
+  },
+  "exclude": [
+    "node_modules"
+  ],
+  "include": [
+    "lib/**/*.ts"
+  ],
+  "types": [
+    "node"
+  ]
+}
