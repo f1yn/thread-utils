@@ -4,18 +4,19 @@
     "module": "esnext",
     "moduleResolution": "node",
     "removeComments": true,
+    "declaration": true,
     "sourceMap": false,
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
-    "rootDir": "lib",
-    "outDir": "dist",
-    "baseUrl": "lib"
+    "rootDir": "lib-src",
+    "outDir": "lib",
+    "baseUrl": "lib-src"
   },
   "exclude": [
     "node_modules"
   ],
   "include": [
-    "lib/**/*.ts"
+    "lib-src/**/*.ts"
   ],
   "types": [
     "node"
