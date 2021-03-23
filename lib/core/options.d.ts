@@ -1,5 +1,5 @@
+import 'dotenv/config';
 export interface genericAnyCommandOptions {
-    taskConcurrency?: number;
     threadingConcurrency?: number;
     [key: string]: any;
 }

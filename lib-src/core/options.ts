@@ -1,15 +1,16 @@
+import 'dotenv/config';
+
+import os from 'os';
 import { workerData } from 'worker_threads';
 
+const allCoresCount = os.cpus().length;
+
 export interface genericAnyCommandOptions {
-	// total number of concurrent tasks being applied from the primary process
-	taskConcurrency?: number;
 	// total number of threads that will be performing asynchronous tasks
 	threadingConcurrency?: number;
 	// additional configurations
 	[key: string]: any;
 }
-
-// TODO: multiply task concurrency by threading concurrency number (i.e 100 tasks per thread)
 
 let optionsSingletonStorage: genericAnyCommandOptions | null =
 	workerData || null;
@@ -20,7 +21,19 @@ let optionsSingletonStorage: genericAnyCommandOptions | null =
  * @param commandOptions
  */
 export function setOptions(commandOptions: genericAnyCommandOptions): void {
-	optionsSingletonStorage = commandOptions;
+	const defaultWithMax = (value, defaultMax) =>
+		Math.min(Math.ceil(defaultMax || defaultMax), defaultMax);
+
+	const options = {
+		...commandOptions,
+		threadingConcurrency: defaultWithMax(
+			commandOptions.threadingConcurrency,
+			Math.floor(allCoresCount / 2)
+		),
+	};
+
+	console.log('using configuration', options);
+	optionsSingletonStorage = options;
 }
 
 /**

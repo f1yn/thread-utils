@@ -1,1 +1,1 @@
-export default function logger(namespace: any): (...parts: any[]) => void;
+export default function logger(...namespaces: any[]): (...parts: any[]) => void;

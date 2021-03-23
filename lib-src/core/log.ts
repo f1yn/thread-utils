@@ -19,12 +19,15 @@ function selectColor(namespace) {
 	return Math.abs(hash) % 16;
 }
 
-export default function logger(namespace) {
-	const prependParts = [namespace];
+export default function logger(...namespaces) {
+	const prependParts = [...namespaces];
+
 	if (workerData && workerData.threadId) {
-		prependParts.unshift('thread:' + workerData.threadId);
+		prependParts.push('thread:' + workerData.threadId);
 	}
-	const logPrepend = prependParts.map((item) => '[' + item + ']').join(' | ');
+
+	const logPrepend = prependParts.map((item) => '[' + item + ']').join(' ');
+
 	// console.log('color hash', selectColor(logPrepend));
 	return (...parts) => console.error(logPrepend, ...parts);
 }
