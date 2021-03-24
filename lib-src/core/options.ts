@@ -5,22 +5,21 @@ import { workerData } from 'worker_threads';
 
 const allCoresCount = os.cpus().length;
 
-export interface genericAnyCommandOptions {
+export interface genericCommandOptions {
 	// total number of threads that will be performing asynchronous tasks
 	threadingConcurrency?: number;
-	// additional configurations
-	[key: string]: any;
 }
 
-let optionsSingletonStorage: genericAnyCommandOptions | null =
-	workerData || null;
+let optionsSingletonStorage = workerData || null;
 
 /**
  * Bind arguments for the main process. Since threader runs in the
  * default execution context this is required
  * @param commandOptions
  */
-export function setOptions(commandOptions: genericAnyCommandOptions): void {
+export function setOptions<T extends genericCommandOptions>(
+	commandOptions: T
+): void {
 	const defaultWithMax = (value, defaultMax) =>
 		Math.min(Math.ceil(defaultMax || defaultMax), defaultMax);
 
@@ -36,11 +35,17 @@ export function setOptions(commandOptions: genericAnyCommandOptions): void {
 	optionsSingletonStorage = options;
 }
 
+export const defaultByType = <T>(
+	source: T,
+	typeString: string,
+	defaultValue: T
+): T => (typeof source !== typeString ? defaultValue : source);
+
 /**
  * Fetch the current command arguments
  */
-export function getOptions(): genericAnyCommandOptions | null {
-	const fetchedArgs = optionsSingletonStorage;
+export function getOptions<T extends genericCommandOptions>(): T | null {
+	const fetchedArgs = optionsSingletonStorage as T;
 
 	if (!fetchedArgs) {
 		throw new Error(

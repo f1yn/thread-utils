@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+
 import chunk from 'lodash/chunk';
 
 import threader, {
@@ -7,10 +8,45 @@ import threader, {
 } from './core/threader';
 
 import { getMatchingFilesInBatches } from './core/scanner';
-import { getOptions } from './core/options';
+
+import {
+	getOptions,
+	defaultByType,
+	genericCommandOptions,
+} from './core/options';
+
 import { syncModels, connectAndBuildModels } from './imageHashModels';
 
-const commandOptions = getOptions();
+interface imageHashTypeOptions extends genericCommandOptions {
+	hashingBatchSize: number;
+	comparisonBatchSize: number;
+	sourceDirectory: string;
+	minimumByteSize: number;
+	levenThreshold: number;
+	levenResolution: number;
+}
+
+interface levenCalculationResult {
+	id: number;
+	leven: number;
+}
+
+const commandOptions = <imageHashTypeOptions>getOptions();
+
+/**
+ * Flattens a batch of task and returns valid results as a single array
+ * @param taskResults
+ */
+function flattenValidResults(
+	taskResults: WorkerTaskResultPayload[]
+): Pick<WorkerTaskResultPayload, 'result'>[] {
+	return (
+		[]
+			.concat(...taskResults.map((taskResult) => taskResult.result))
+			// Only use results that were processed
+			.filter(Boolean)
+	);
+}
 
 async function setupImageHashSender(log) {
 	// The batch size is determined by the number of hashes per thread
@@ -42,12 +78,7 @@ async function setupImageHashSender(log) {
 				);
 
 				// flatten and filter
-				rawImageData = []
-					.concat(
-						...taskResults.map((taskResult) => taskResult.result)
-					)
-					// Only use results that were processed
-					.filter(Boolean);
+				rawImageData = flattenValidResults(taskResults);
 
 				// write results to database in bulk
 				await Image.bulkCreate(rawImageData);
@@ -98,7 +129,7 @@ async function setupGroupingSender() {
 		commandOptions.comparisonBatchSize *
 		commandOptions.threadingConcurrency;
 
-	const { sequelize, Image, Group } = await connectAndBuildModels();
+	const { Image, Group } = await connectAndBuildModels();
 
 	let taskResults = [];
 
@@ -108,7 +139,7 @@ async function setupGroupingSender() {
 		const imagesToCompare = await Image.findAll({
 			where: {
 				processed: false,
-				GroupId: null,
+				groupId: null,
 			},
 			limit: batchSize,
 		});
@@ -121,32 +152,62 @@ async function setupGroupingSender() {
 		);
 
 		// send image model values to thread
-		taskResults = await Promise.all(
-			chunk(
-				imagesToCompare,
-				commandOptions.comparisonBatchSize
-			).map((imageModelBatch) =>
-				sendToThread(imageModelBatch.map((model) => model.toJSON()))
+		taskResults = flattenValidResults(
+			await Promise.all(
+				chunk(
+					imagesToCompare,
+					commandOptions.comparisonBatchSize
+				).map((imageModelBatch) =>
+					sendToThread(imageModelBatch.map((model) => model.toJSON()))
+				)
 			)
 		);
+
+		console.log(taskResults);
 	};
 }
 
 async function setupGroupingReceiver(log) {
-	const { sequelize, Image, Group } = await connectAndBuildModels();
+	const { sequelize } = await connectAndBuildModels();
 
-	async function processImage(rawImageModel) {
-		const result = await sequelize.query(
+	const levenThreshold = defaultByType(
+		commandOptions.levenThreshold,
+		'number',
+		12
+	);
+
+	const levenResolution = defaultByType(
+		commandOptions.levenResolution,
+		'number',
+		1024
+	);
+
+	/**
+	 * Calculates levenshtein distance between a single hash, in comparison to all
+	 * other eligible images in the database
+	 * @param hash
+	 */
+	async function performLevenshteinComparisons(
+		hash: string
+	): Promise<levenCalculationResult[]> {
+		const [results] = await sequelize.query(
 			`
 				create extension if not exists fuzzystrmatch;
-				select id, levenshtein(hash, ?) as leven_hash from images
-				where images."GroupId" is null
-				order by leven_hash ASC
+				select id, levenshtein(hash, ?) as leven from images
+				where "groupId" is null and
+				processed = false
+				order by leven ASC
+				limit ?
 			`,
-			{ replacements: [rawImageModel.hash] }
+			{ replacements: [hash, levenResolution] }
 		);
+		return results as levenCalculationResult[];
+	}
 
-		console.log(result);
+	async function processImage(rawImageModel) {
+		const results = await performLevenshteinComparisons(rawImageModel.hash);
+		// Only return matches that are less than or equal to the leven threshold
+		return results.filter((result) => result.leven >= levenThreshold);
 	}
 
 	return async ({ data: imageBatch }) =>

@@ -1,7 +1,7 @@
 import 'dotenv/config';
-export interface genericAnyCommandOptions {
+export interface genericCommandOptions {
     threadingConcurrency?: number;
-    [key: string]: any;
 }
-export declare function setOptions(commandOptions: genericAnyCommandOptions): void;
-export declare function getOptions(): genericAnyCommandOptions | null;
+export declare function setOptions<T extends genericCommandOptions>(commandOptions: T): void;
+export declare const defaultByType: <T>(source: T, typeString: string, defaultValue: T) => T;
+export declare function getOptions<T extends genericCommandOptions>(): T | null;

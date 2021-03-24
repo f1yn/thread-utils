@@ -55,7 +55,7 @@ export async function connectAndBuildModels() {
 	);
 
 	// define associations
-	Image.belongsTo(Group);
+	Image.belongsTo(Group, { foreignKey: 'groupId' });
 	Group.hasMany(Image);
 
 	// return interface
