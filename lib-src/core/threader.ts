@@ -196,3 +196,5 @@ async function threaderWorkerHandler(
 }
 
 export default isMainThread ? threaderMainHandler : threaderWorkerHandler;
+
+export { isMainThread };

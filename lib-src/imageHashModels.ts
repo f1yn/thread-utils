@@ -1,4 +1,31 @@
-import { Sequelize, DataTypes } from 'sequelize';
+import { Sequelize, DataTypes, Model, Optional } from 'sequelize';
+
+interface ImageAttributes {
+	id: number;
+	bytes: number;
+	hash: string;
+	path: string;
+	processed: boolean;
+	groupId?: number;
+}
+
+interface ImageCreateAttributes extends Optional<ImageAttributes, 'id'> {}
+
+export interface ImageInstance
+	extends Model<ImageAttributes, ImageCreateAttributes>,
+		ImageAttributes {}
+
+interface GroupAttributes {
+	id: number;
+}
+
+interface GroupCreateAttributes extends Optional<GroupAttributes, 'id'> {}
+
+export interface GroupInstance
+	extends Model<GroupAttributes, GroupCreateAttributes>,
+		GroupAttributes {
+	images?: ImageInstance[];
+}
 
 export async function connectAndBuildModels() {
 	// build and test connection
@@ -7,7 +34,7 @@ export async function connectAndBuildModels() {
 	});
 	await sequelize.authenticate();
 
-	const Image = sequelize.define(
+	const Image = sequelize.define<ImageInstance>(
 		'images',
 		{
 			id: {
@@ -39,7 +66,7 @@ export async function connectAndBuildModels() {
 		}
 	);
 
-	const Group = sequelize.define(
+	const Group = sequelize.define<GroupInstance>(
 		'groups',
 		{
 			id: {

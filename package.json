@@ -5,7 +5,9 @@
     "build": "tsc",
     "watch": "npx nodemon --exec 'npm run build' -e .ts --watch lib-src",
     "task:create-sandbox-perms": "node -r esm ./utils/create-test-permutations.js",
-    "test:dedupe": "node -r esm ./utils/dedupe-images.js"
+    "pretest:dedupe": "rm -f sandbox/index.html",
+    "test:dedupe": "node -r esm ./utils/dedupe-images.js",
+    "sandbox": "npx serve sandbox"
   },
   "engines": {
     "node": ">14"

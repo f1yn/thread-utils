@@ -8,9 +8,11 @@ setOptions({
 	// number of comparisons per thread at a time
 	comparisonBatchSize: 1,
 	// the minimum size in bytes
-	minimumByteSize: 11 * 1024,
+	minimumByteSize: 1, // 11 * 1024,
+	// the resolution to generate the image hash
+	levenDetailLevel: 24,
 	// leven threshold
-	levenThreshold: 12,
+	levenThreshold: 16,
 	// the maximum number of items per leven calculation
 	levenResolution: 1024,
 });
