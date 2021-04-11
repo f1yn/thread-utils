@@ -4,7 +4,13 @@ Multi-threaded batch processing on files. Self requiring.
 
 > Requires postgresql and nodejs 14+
 
-**Create folder `sandbox` before running any commands**
+## Before using
+
+```bash
+npm install
+npm run build
+mkdir sandbox
+```
 
 ## Image hash
 
