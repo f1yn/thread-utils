@@ -30,7 +30,7 @@ export const imageGroup = (groupIdentifier: any, images: any[]) => {
 		...images.map((image) =>
 			[
 				`<article>`,
-				`<img src="/${image.path}" />`,
+				`<img src="${image.path}" />`,
 				`<b>${image.bytes}</b>`,
 				`</article>`,
 			].join('\n')

@@ -13,6 +13,7 @@ export interface ImageInstance extends Model<ImageAttributes, ImageCreateAttribu
 }
 interface GroupAttributes {
     id: number;
+    hash: string;
 }
 interface GroupCreateAttributes extends Optional<GroupAttributes, 'id'> {
 }

@@ -10,26 +10,22 @@ import threader, {
 } from './core/threader';
 
 import { getMatchingFilesInBatches } from './core/scanner';
-
-import {
-	getOptions,
-	defaultByType,
-	genericCommandOptions,
-} from './core/options';
-
+import { defaultByType, getOptions } from './core/options';
+import { handleBatchWithRedundancy } from './core/utilities';
 import { imageGroup, templateBottom, templateTop } from './core/basicHtml';
 
-import { syncModels, connectAndBuildModels } from './imageHashModels';
+import { connectAndBuildModels, syncModels } from './imageHashModels';
 
-interface imageHashTypeOptions extends genericCommandOptions {
-	hashingBatchSize: number;
-	comparisonBatchSize: number;
-	sourceDirectory: string;
-	minimumByteSize: number;
-	levenDetailLevel: number;
-	levenThreshold: number;
-	levenResolution: number;
-}
+import {
+	assignMatchesToGroup,
+	performLevenshteinComparisons,
+} from './imageHashAlgo';
+
+import {
+	imageHashTypeOptions,
+	levenCalculationResults,
+	LevenCalculationWorkerPayload,
+} from './imageHashSharedTypes';
 
 const commandOptions = <imageHashTypeOptions>getOptions();
 
@@ -126,20 +122,8 @@ async function setupImageHashReceiver(log) {
 	}
 
 	// Return handler function for messages from main process
-	return async ({ data: imageBatch }) =>
-		Promise.all(imageBatch.map(processImage));
-}
-
-interface levenCalculationIndividualResult {
-	id: number;
-	leven: number;
-}
-
-type levenCalculationResults = levenCalculationIndividualResult[];
-
-interface LevenCalculationWorkerPayload
-	extends Omit<WorkerTaskResultPayload, 'result'> {
-	result: levenCalculationResults;
+	return ({ data: imageBatch }) =>
+		handleBatchWithRedundancy(imageBatch, processImage, log);
 }
 
 async function setupGroupingSender(log) {
@@ -147,7 +131,8 @@ async function setupGroupingSender(log) {
 		commandOptions.comparisonBatchSize *
 		commandOptions.threadingConcurrency;
 
-	const { sequelize, Image, Group } = await connectAndBuildModels();
+	const models = await connectAndBuildModels();
+	const { Image } = models;
 
 	/**
 	 * Resolves with a batch of images
@@ -160,44 +145,6 @@ async function setupGroupingSender(log) {
 			},
 			limit: batchSize,
 		});
-
-	/**
-	 * If matches are present, creates a new Group containing the primary image
-	 * @param primaryImage
-	 * @param allMatches
-	 */
-	async function assignMatchesToGroup(
-		primaryImage,
-		allMatches: levenCalculationResults
-	) {
-		if (!allMatches.length) return;
-
-		// first build new group
-		const newGroup = await Group.create();
-
-		// build set of ids for bulk update
-		const matchesByImageId = [
-			// primary image
-			primaryImage.get('id'),
-			// any matches
-			...allMatches.map((match) => match.id),
-		];
-
-		log('grouping', allMatches.length, 'images');
-
-		// add matching images to group
-		await sequelize.query(
-			`
-				UPDATE images
-				set "groupId" = ?
-				where id in (?)
-				and "groupId" is null
-			`,
-			{
-				replacements: [newGroup.get('id'), matchesByImageId],
-			}
-		);
-	}
 
 	return async function pipeToThreads(sendToThread) {
 		// store results in the same memory alloc
@@ -232,7 +179,12 @@ async function setupGroupingSender(log) {
 			// Iterate over each image and image task result - and group non-grouped items
 			await Promise.all(
 				imagesToCompare.map((primaryImage, index) =>
-					assignMatchesToGroup(primaryImage, taskResults[index])
+					assignMatchesToGroup(
+						models,
+						log,
+						primaryImage,
+						taskResults[index]
+					)
 				)
 			);
 
@@ -253,50 +205,18 @@ async function setupGroupingSender(log) {
 }
 
 async function setupGroupingReceiver(log) {
-	const { sequelize } = await connectAndBuildModels();
-
-	const levenThreshold = defaultByType(
-		commandOptions.levenThreshold,
-		'number',
-		12
-	);
-
-	const levenResolution = defaultByType(
-		commandOptions.levenResolution,
-		'number',
-		1024
-	);
-
-	/**
-	 * Calculates levenshtein distance between a single hash, in comparison to all
-	 * other eligible images in the database
-	 * @param hash
-	 */
-	async function performLevenshteinComparisons(
-		hash: string
-	): Promise<levenCalculationResults> {
-		const [results] = await sequelize.query(
-			`
-				create extension if not exists fuzzystrmatch;
-				select id, levenshtein(hash, ?) as leven from images
-				where "groupId" is null and
-				processed = false
-				order by leven ASC
-				limit ?
-			`,
-			{ replacements: [hash, levenResolution] }
-		);
-		return results as levenCalculationResults;
-	}
+	const models = await connectAndBuildModels();
 
 	async function processImage(rawImageModel) {
-		const results = await performLevenshteinComparisons(rawImageModel.hash);
-		// Only return matches that are less than or equal to the leven threshold
-		return results.filter((result) => result.leven <= levenThreshold);
+		return await performLevenshteinComparisons(
+			models,
+			log,
+			rawImageModel.hash
+		);
 	}
 
 	return async ({ data: imageBatch }) =>
-		Promise.all(imageBatch.map(processImage));
+		handleBatchWithRedundancy(imageBatch, processImage, log);
 }
 
 await threader(
@@ -321,7 +241,7 @@ if (isMainThread) {
 		order: [['id', 'ASC']],
 	});
 
-	const file = 'sandbox/index.html';
+	const file = path.join('./sandbox', '/index.html');
 
 	await fs.appendFile(file, templateTop('Image results'));
 
@@ -332,7 +252,10 @@ if (isMainThread) {
 			.sort((a, b) => b.bytes - a.bytes)
 			.map((image) => ({
 				...image.get(),
-				path: path.relative('sandbox', image.path),
+				path: `http://localhost:5000/${path.relative(
+					commandOptions.sourceDirectory,
+					image.path
+				)}`,
 			}));
 
 		await fs.appendFile(file, imageGroup(group.id, imageItems));

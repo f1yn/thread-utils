@@ -35,11 +35,17 @@ export function setOptions<T extends genericCommandOptions>(
 	optionsSingletonStorage = options;
 }
 
-export const defaultByType = <T>(
-	source: T,
+/**
+ * Applies a default value when the provided source value has a mismatches type
+ * @param source
+ * @param typeString
+ * @param defaultValue
+ */
+export const defaultByType = <PrefType>(
+	source: PrefType,
 	typeString: string,
-	defaultValue: T
-): T => (typeof source !== typeString ? defaultValue : source);
+	defaultValue: PrefType
+): PrefType => (typeof source !== typeString ? defaultValue : source);
 
 /**
  * Fetch the current command arguments

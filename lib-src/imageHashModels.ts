@@ -17,6 +17,7 @@ export interface ImageInstance
 
 interface GroupAttributes {
 	id: number;
+	hash: string;
 }
 
 interface GroupCreateAttributes extends Optional<GroupAttributes, 'id'> {}
@@ -27,6 +28,9 @@ export interface GroupInstance
 	images?: ImageInstance[];
 }
 
+/**
+ * Connect to existing database - return the Sequelize Model definitions
+ */
 export async function connectAndBuildModels() {
 	// build and test connection
 	const sequelize = new Sequelize(process.env.DB_URL, {
@@ -74,6 +78,10 @@ export async function connectAndBuildModels() {
 				autoIncrement: true,
 				primaryKey: true,
 			},
+			hash: {
+				type: new DataTypes.STRING(255),
+				allowNull: false,
+			},
 		},
 		{
 			tableName: 'groups',
@@ -93,6 +101,10 @@ export async function connectAndBuildModels() {
 	};
 }
 
+/**
+ * Sync model definitions and wipe the specified tables.
+ * Returns the Sequelize Model definitions.
+ */
 export async function syncModels() {
 	const modelsInterface = await connectAndBuildModels();
 	// synchronise models and indexes
