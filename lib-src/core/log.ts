@@ -8,5 +8,5 @@ export default function logger(...namespaces: string[]) {
 	}
 
 	const logPrepend = prependParts.map((item) => '[' + item + ']').join(' ');
-	return (...parts: any[]) => console.error(logPrepend, ...parts);
+	return (...parts: any[]) => console.info(logPrepend, ...parts);
 }

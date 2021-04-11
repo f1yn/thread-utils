@@ -29,6 +29,16 @@ import {
 
 const commandOptions = <imageHashTypeOptions>getOptions();
 
+// Attempt to access
+try {
+	await fs.access(commandOptions.sourceDirectory);
+} catch (error) {
+	console.error(
+		`Could not load the provided sourceDirectory ${commandOptions.sourceDirectory}"`
+	);
+	throw error;
+}
+
 /**
  * Flattens a batch of task and returns valid results as a single array
  * @param taskResults
@@ -242,8 +252,7 @@ if (isMainThread) {
 	});
 
 	const file = path.join('./sandbox', '/index.html');
-
-	await fs.appendFile(file, templateTop('Image results'));
+	await fs.writeFile(file, templateTop('Image results'));
 
 	let imageItems;
 
@@ -262,4 +271,12 @@ if (isMainThread) {
 	}
 
 	await fs.appendFile(file, templateBottom());
+
+	const { serveStaticDirectory } = await import('./core/serve');
+
+	// serve assets
+	await Promise.all([
+		serveStaticDirectory(commandOptions.sourceDirectory, 5000),
+		serveStaticDirectory(path.resolve('./sandbox'), 5001),
+	]);
 }

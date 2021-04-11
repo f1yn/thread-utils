@@ -1,3 +1,5 @@
+import filesize from 'filesize/lib/filesize.es6';
+
 export const templateTop = (title: string) => `
 	<!doctype html>
 	<html lang="en">
@@ -31,7 +33,7 @@ export const imageGroup = (groupIdentifier: any, images: any[]) => {
 			[
 				`<article>`,
 				`<img src="${image.path}" />`,
-				`<b>${image.bytes}</b>`,
+				`<b>${filesize(image.bytes)}</b>`,
 				`</article>`,
 			].join('\n')
 		),

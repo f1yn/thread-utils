@@ -1,11 +1,14 @@
 import path from 'path';
+
 import { setOptions } from '../lib/core/options';
+
+const [_command, relativeSourceDirectory] = commandOptions._;
 
 setOptions({
 	// mode to execute in
-	mode: 'top',
+	mode: commandOptions.mode || 'lazy',
 	// directory to walk
-	sourceDirectory: path.resolve(__dirname, '../sandbox'),
+	sourceDirectory: path.resolve(process.cwd(), relativeSourceDirectory),
 	// number of files to give to each thread at a time
 	hashingBatchSize: 6,
 	// number of comparisons per thread at a time
@@ -20,4 +23,6 @@ setOptions({
 	levenResolution: 1024,
 });
 
-await import('../lib/imageHash');
+await import('../lib/imageHash').catch(
+	(error) => console.error() || process.exit(error.code || 128)
+);

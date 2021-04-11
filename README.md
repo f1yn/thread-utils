@@ -4,7 +4,15 @@ Multi-threaded batch processing on files. Self requiring.
 
 > Requires postgresql and nodejs 14+
 
+**Create folder `sandbox` before running any commands**
+
 ## Image hash
+
+Find and group duplicates of images using image hashing and Levenshtein comparisons.
+
+`node -r esm dedupe [sourecDirectory] --mode lazy|top`
+
+> Add `alias nde="node -r esm" for easier usage`
 
 ### `mode: 'lazy'`
 
