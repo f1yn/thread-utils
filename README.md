@@ -20,6 +20,10 @@ Find and group duplicates of images using image hashing and Levenshtein comparis
 
 > Add `alias nde="node -r esm" for easier usage`
 
+
+### `mode: 'dry'`
+- No hashing, only filesize calculation. Prints count at end of scanning
+
 ### `mode: 'lazy'`
 
 - Fastest, fewest cycles. Groups together within threshold level

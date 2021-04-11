@@ -11,7 +11,10 @@ import threader, {
 
 import { getMatchingFilesInBatches } from './core/scanner';
 import { defaultByType, getOptions } from './core/options';
-import { handleBatchWithRedundancy } from './core/utilities';
+import {
+	flattenValidResults,
+	handleBatchWithRedundancy,
+} from './core/utilities';
 import { imageGroup, templateBottom, templateTop } from './core/basicHtml';
 
 import { connectAndBuildModels, syncModels } from './imageHashModels';
@@ -29,8 +32,8 @@ import {
 
 const commandOptions = <imageHashTypeOptions>getOptions();
 
-// Attempt to access
 try {
+	// Attempt to access sourceDirectory
 	await fs.access(commandOptions.sourceDirectory);
 } catch (error) {
 	console.error(
@@ -39,20 +42,8 @@ try {
 	throw error;
 }
 
-/**
- * Flattens a batch of task and returns valid results as a single array
- * @param taskResults
- */
-function flattenValidResults(
-	taskResults: WorkerTaskResultPayload[]
-): any[] & Pick<WorkerTaskResultPayload, 'result'>[] {
-	return (
-		[]
-			.concat(...taskResults.map((taskResult) => taskResult.result))
-			// Only use results that were processed/did not encounter errors
-			.filter(Boolean)
-	);
-}
+// flag that indeicates if we are running in dry (count) mode
+const isDryMode = commandOptions.mode === 'dry';
 
 async function setupImageHashSender(log) {
 	// The batch size is determined by the number of hashes per thread
@@ -92,7 +83,9 @@ async function setupImageHashSender(log) {
 				// nudge GC
 				taskResults = [];
 				rawImageData = [];
-			}
+			},
+			// show non-matching in dry mode for debugging
+			isDryMode
 		);
 	};
 }
@@ -126,6 +119,11 @@ async function setupImageHashReceiver(log) {
 			return null;
 		}
 
+		// In dry mode, we're just looking for a count estimate
+		if (isDryMode) {
+			return { path: imagePath, hash: '', bytes: stats.size };
+		}
+
 		// get image hash and return result
 		const hash = await imageHash.hash(imagePath, levenDetailLevel);
 		return { path: imagePath, hash, bytes: stats.size };
@@ -157,6 +155,9 @@ async function setupGroupingSender(log) {
 		});
 
 	return async function pipeToThreads(sendToThread) {
+		// Don't do anything in dry mode
+		if (isDryMode) return;
+
 		// store results in the same memory alloc
 		let taskResults: levenCalculationResults[] &
 			Pick<LevenCalculationWorkerPayload, 'result'>[] = [];
@@ -244,10 +245,20 @@ await threader(
 );
 
 if (isMainThread) {
-	const { Group } = await connectAndBuildModels();
+	const models = await connectAndBuildModels();
 
-	const groupedResults = await Group.findAll({
-		include: [Group.associations.images],
+	if (isDryMode) {
+		const count = await models.Image.count();
+		console.info(
+			'[DEBUG]',
+			count,
+			'approximately images would be processed'
+		);
+		process.exit();
+	}
+
+	const groupedResults = await models.Group.findAll({
+		include: [models.Group.associations.images],
 		order: [['id', 'ASC']],
 	});
 

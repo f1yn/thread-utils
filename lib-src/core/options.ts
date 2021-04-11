@@ -8,6 +8,8 @@ const allCoresCount = os.cpus().length;
 export interface genericCommandOptions {
 	// total number of threads that will be performing asynchronous tasks
 	threadingConcurrency?: number;
+	// regexp matching forbidden directories
+	dontWalk?: RegExp;
 }
 
 let optionsSingletonStorage = workerData || null;

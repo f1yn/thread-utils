@@ -2,7 +2,7 @@ import { genericCommandOptions } from './core/options';
 import { WorkerTaskResultPayload } from './core/threader';
 
 export interface imageHashTypeOptions extends genericCommandOptions {
-	mode: 'lazy' | 'top';
+	mode: 'lazy' | 'top' | 'dry';
 	hashingBatchSize: number;
 	comparisonBatchSize: number;
 	sourceDirectory: string;

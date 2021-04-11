@@ -21,6 +21,8 @@ setOptions({
 	levenThreshold: 22,
 	// the maximum number of items per leven calculation
 	levenResolution: 1024,
+	// avoid walking down certain directories
+	dontWalk: /(AppData)|(Lightroom)|(\$RECYCLE\.BIN)/,
 });
 
 await import('../lib/imageHash').catch(

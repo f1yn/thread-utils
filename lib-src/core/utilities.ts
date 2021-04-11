@@ -1,3 +1,5 @@
+import { WorkerTaskResultPayload } from './threader';
+
 interface BatchError {
 	error: Error;
 }
@@ -23,5 +25,20 @@ export function handleBatchWithRedundancy<MapInputType, MapReturnType>(
 				return { error };
 			}
 		})
+	);
+}
+
+/**
+ * Flattens a batch of task and returns valid results as a single array
+ * @param taskResults
+ */
+export function flattenValidResults(
+	taskResults: WorkerTaskResultPayload[]
+): any[] & Pick<WorkerTaskResultPayload, 'result'>[] {
+	return (
+		[]
+			.concat(...taskResults.map((taskResult) => taskResult.result))
+			// Only use results that were processed/did not encounter errors
+			.filter((result) => Boolean(result) && !result.error)
 	);
 }

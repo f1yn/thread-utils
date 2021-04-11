@@ -1,8 +1,18 @@
 import fs from 'fs';
 import path from 'path';
 
+import { getOptions } from './options';
+
+const commandOptions = getOptions();
+
 // sourced from https://gist.github.com/lovasoa/8691344
 async function* walk(dir: string) {
+	if (commandOptions.dontWalk && commandOptions.dontWalk.test(dir)) {
+		// Don't walk forbidden paths!
+		console.warn('refusing to walk', dir, 'since its marked as forbidden');
+		return;
+	}
+
 	for await (const d of await fs.promises.opendir(dir)) {
 		const entry = path.join(dir, d.name);
 		if (d.isDirectory()) yield* walk(entry);
@@ -22,7 +32,8 @@ export async function getMatchingFilesInBatches(
 	rootDirectory: string,
 	fileMatchRegexp: RegExp,
 	maxBatchSize: number,
-	asyncCallbackFcn: (pathBatch: string[]) => Promise<void>
+	asyncCallbackFcn: (pathBatch: string[]) => Promise<void>,
+	showNonMatching = false
 ) {
 	let currentMatchingBatch = [];
 	let pathToTest;
@@ -32,7 +43,7 @@ export async function getMatchingFilesInBatches(
 		if (fileMatchRegexp.test(pathToTest)) {
 			currentMatchingBatch.push(pathToTest);
 			console.log('[scan] matching', pathToTest);
-		} else {
+		} else if (showNonMatching) {
 			console.log('[scan] non matching', pathToTest);
 		}
 
