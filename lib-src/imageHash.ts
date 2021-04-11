@@ -49,7 +49,7 @@ function flattenValidResults(
 	return (
 		[]
 			.concat(...taskResults.map((taskResult) => taskResult.result))
-			// Only use results that were processed
+			// Only use results that were processed/did not encounter errors
 			.filter(Boolean)
 	);
 }

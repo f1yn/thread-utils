@@ -3,6 +3,7 @@ export interface WorkerTaskResultPayload {
     threadId: number;
     taskId: string;
     result: any;
+    error?: Error;
 }
 export declare type SendToThreadCallback = (data: any) => Promise<WorkerTaskResultPayload>;
 declare function threaderMainHandler(actionId: any, script: any, mainContextCallback: any, _workerContextCallback: any): Promise<void>;

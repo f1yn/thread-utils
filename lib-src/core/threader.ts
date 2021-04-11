@@ -21,6 +21,7 @@ export interface WorkerTaskResultPayload {
 	threadId: number;
 	taskId: string;
 	result: any;
+	error?: Error;
 }
 
 export type SendToThreadCallback = (
@@ -181,13 +182,18 @@ async function threaderWorkerHandler(
 
 	// wait for messages
 	parentPort.on('message', async (payload: WorkerTaskPayload) => {
+		// execute callback, but also handle .error as a non-breaking exception
 		const result = await workerHandlerCallback(payload);
+
+		// check for error
+		const error = result.error;
 
 		// send task result back
 		parentPort.postMessage({
+			error,
+			result: error ? null : result,
 			threadId: payload.threadId,
 			taskId: payload.taskId,
-			result,
 		} as WorkerTaskResultPayload);
 	});
 
