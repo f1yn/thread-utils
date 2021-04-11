@@ -63,3 +63,24 @@ export function getOptions<T extends genericCommandOptions>(): T | null {
 
 	return fetchedArgs;
 }
+
+/**
+ * Strictly validates against unverified input to ensure that it matches expectations
+ * @param possibleValues
+ * @param valueToTest
+ */
+export function validateStrictConfigIsIn<T>(
+	name: string,
+	expectedValues: T[],
+	valueToTest: T
+) {
+	if (expectedValues.includes(valueToTest)) return;
+
+	const expectedValuesString = expectedValues
+		.map((v) => JSON.stringify(v))
+		.join(', ');
+
+	throw new Error(
+		`The configuration for '${name}' is invalid. Received "${valueToTest}", but expected any of: ${expectedValuesString}`
+	);
+}

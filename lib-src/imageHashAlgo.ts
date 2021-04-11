@@ -102,8 +102,6 @@ async function lazyAssignMatchesToGroup(
 	primaryImage,
 	allMatches: levenCalculationResults
 ) {
-	if (!allMatches.length) return;
-
 	// first build new group
 	const newGroup = await models.Group.create({
 		hash: primaryImage.get('hash'),
@@ -139,15 +137,13 @@ async function topAssignMatchesToGroup(
 	primaryImage,
 	allMatches: levenCalculationResults
 ) {
-	if (!allMatches.length) return;
-
 	let targetGroupId;
+	let usingExisting = false;
 
-	if (allMatches[0].groupId) {
-		log('using existing group for assignment');
+	if (allMatches[0] && allMatches[0].groupId) {
 		targetGroupId = allMatches[0].groupId;
+		usingExisting = true;
 	} else {
-		log('using new group for assignment');
 		const newGroup = await models.Group.create({
 			hash: primaryImage.get('hash'),
 		});
@@ -167,7 +163,12 @@ async function topAssignMatchesToGroup(
 		...imageMatches,
 	];
 
-	log('grouping', allMatches.length, 'images');
+	log(
+		'placing',
+		matchesByImageId.length,
+		matchesByImageId.length === 1 ? 'image' : 'images',
+		usingExisting ? 'into an existing group' : 'into a new group'
+	);
 
 	// add matching images to group
 	await models.sequelize.query(

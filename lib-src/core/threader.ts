@@ -50,6 +50,9 @@ async function threaderMainHandler(
 		commandOptions
 	);
 
+	// Don't do anything else if we're dealing with a nullified callback
+	if (!mainHandlerCallback) return;
+
 	// store workers in a circular linked array
 	const allWorkersCircular = [];
 
@@ -108,15 +111,15 @@ async function threaderMainHandler(
 		// iterate selected worker first
 		workerIterator = workerIterator.next;
 		const currentSelectedThread = workerIterator;
+		// create task identity
 		const taskId = uuid();
 
 		// create promise that resolves when the task resolves
 		const pendingTaskPromise = new Promise((resolve) => {
-			// TODO: add error interceptor
 			function waitForTaskCompletion(result) {
 				if (result.taskId !== taskId) return;
-				// unbind listener for this task
 				actionLog('task', taskId, 'completed');
+				// unbind listener for this task
 				currentSelectedThread.worker.removeListener(
 					'message',
 					waitForTaskCompletion

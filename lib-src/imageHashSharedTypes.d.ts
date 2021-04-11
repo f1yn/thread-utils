@@ -2,7 +2,7 @@ import { genericCommandOptions } from './core/options';
 import { WorkerTaskResultPayload } from './core/threader';
 
 export interface imageHashTypeOptions extends genericCommandOptions {
-	mode: 'lazy' | 'top' | 'dry';
+	mode: 'lazy' | 'top' | 'dry' | 'output';
 	hashingBatchSize: number;
 	comparisonBatchSize: number;
 	sourceDirectory: string;
@@ -10,6 +10,9 @@ export interface imageHashTypeOptions extends genericCommandOptions {
 	levenDetailLevel: number;
 	levenThreshold: number;
 	levenResolution: number;
+	groupOnly?: boolean;
+	outputMode: 'copy' | 'page';
+	outputCopyBatchSize?: number;
 }
 
 export interface levenCalculationIndividualResult {

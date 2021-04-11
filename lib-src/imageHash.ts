@@ -1,6 +1,4 @@
 import fs from 'fs/promises';
-import path from 'path';
-
 import chunk from 'lodash/chunk';
 
 import threader, {
@@ -15,7 +13,6 @@ import {
 	flattenValidResults,
 	handleBatchWithRedundancy,
 } from './core/utilities';
-import { imageGroup, templateBottom, templateTop } from './core/basicHtml';
 
 import { connectAndBuildModels, syncModels } from './imageHashModels';
 
@@ -29,6 +26,12 @@ import {
 	levenCalculationResults,
 	LevenCalculationWorkerPayload,
 } from './imageHashSharedTypes';
+
+import {
+	outputCopyTo,
+	outputDryRunStats,
+	outputToHtml,
+} from './imageHashOutput';
 
 const commandOptions = <imageHashTypeOptions>getOptions();
 
@@ -46,6 +49,9 @@ try {
 const isDryMode = commandOptions.mode === 'dry';
 
 async function setupImageHashSender(log) {
+	// If groupOnly, skip calculating hashes
+	if (commandOptions.groupOnly || commandOptions.mode === 'output') return;
+
 	// The batch size is determined by the number of hashes per thread
 	// and the threading concurrency
 	const batchSize =
@@ -139,7 +145,25 @@ async function setupGroupingSender(log) {
 		commandOptions.comparisonBatchSize *
 		commandOptions.threadingConcurrency;
 
+	// If we're in render mode, dont render
+	if (commandOptions.mode === 'output') return;
+
 	const models = await connectAndBuildModels();
+
+	if (commandOptions.groupOnly) {
+		// remove group associations and processed flags
+		await models.sequelize.query(`
+			UPDATE images
+			set "groupId" = null,
+			processed = false
+		`);
+
+		// drop all groups
+		await models.sequelize.query(`
+			DELETE from groups
+		`);
+	}
+
 	const { Image } = models;
 
 	/**
@@ -248,46 +272,10 @@ if (isMainThread) {
 	const models = await connectAndBuildModels();
 
 	if (isDryMode) {
-		const count = await models.Image.count();
-		console.info(
-			'[DEBUG]',
-			count,
-			'approximately images would be processed'
-		);
-		process.exit();
+		await outputDryRunStats(models);
+	} else if (commandOptions.outputMode === 'page') {
+		await outputToHtml(models);
+	} else if (commandOptions.outputMode === 'copy') {
+		await outputCopyTo(models);
 	}
-
-	const groupedResults = await models.Group.findAll({
-		include: [models.Group.associations.images],
-		order: [['id', 'ASC']],
-	});
-
-	const file = path.join('./sandbox', '/index.html');
-	await fs.writeFile(file, templateTop('Image results'));
-
-	let imageItems;
-
-	for (const group of groupedResults) {
-		imageItems = group.images
-			.sort((a, b) => b.bytes - a.bytes)
-			.map((image) => ({
-				...image.get(),
-				path: `http://localhost:5000/${path.relative(
-					commandOptions.sourceDirectory,
-					image.path
-				)}`,
-			}));
-
-		await fs.appendFile(file, imageGroup(group.id, imageItems));
-	}
-
-	await fs.appendFile(file, templateBottom());
-
-	const { serveStaticDirectory } = await import('./core/serve');
-
-	// serve assets
-	await Promise.all([
-		serveStaticDirectory(commandOptions.sourceDirectory, 5000),
-		serveStaticDirectory(path.resolve('./sandbox'), 5001),
-	]);
 }

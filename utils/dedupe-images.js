@@ -1,12 +1,19 @@
 import path from 'path';
 
-import { setOptions } from '../lib/core/options';
+import { setOptions, validateStrictConfigIsIn } from '../lib/core/options';
 
-const [_command, relativeSourceDirectory] = commandOptions._;
+const relativeSourceDirectory = commandOptions._[1];
+
+// perform validations
+const mode = commandOptions.mode || 'lazy';
+validateStrictConfigIsIn('mode', ['top', 'lazy', 'dry', 'output'], mode);
+
+const outputMode = commandOptions.output;
+validateStrictConfigIsIn('output', ['page', 'copy'], outputMode);
 
 setOptions({
 	// mode to execute in
-	mode: commandOptions.mode || 'lazy',
+	mode,
 	// directory to walk
 	sourceDirectory: path.resolve(process.cwd(), relativeSourceDirectory),
 	// number of files to give to each thread at a time
@@ -23,6 +30,10 @@ setOptions({
 	levenResolution: 1024,
 	// avoid walking down certain directories
 	dontWalk: /(AppData)|(Lightroom)|(\$RECYCLE\.BIN)/,
+	// determine if we should only group
+	groupOnly: commandOptions.groupOnly,
+	// determine how we intend on rendering results
+	outputMode,
 });
 
 await import('../lib/imageHash').catch(
