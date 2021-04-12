@@ -43,3 +43,11 @@ Find and group duplicates of images using image hashing and Levenshtein comparis
 ### `output: copy`
 
 - Copies the highest sized matches of the provided files
+
+### `output: move`
+
+- Moves the highest sized matches of the provided files
+
+### `output: page`
+
+- Generates a HTML file showing the largest files, and the number of matches found

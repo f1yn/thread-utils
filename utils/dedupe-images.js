@@ -9,7 +9,7 @@ const mode = commandOptions.mode || 'lazy';
 validateStrictConfigIsIn('mode', ['top', 'lazy', 'dry', 'output'], mode);
 
 const outputMode = commandOptions.output;
-validateStrictConfigIsIn('output', ['page', 'copy'], outputMode);
+validateStrictConfigIsIn('output', ['page', 'copy', 'move'], outputMode);
 
 setOptions({
 	// mode to execute in

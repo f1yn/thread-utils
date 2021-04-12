@@ -11,7 +11,7 @@ export interface imageHashTypeOptions extends genericCommandOptions {
 	levenThreshold: number;
 	levenResolution: number;
 	groupOnly?: boolean;
-	outputMode: 'copy' | 'page';
+	outputMode: 'copy' | 'move' | 'page';
 	outputCopyBatchSize?: number;
 }
 

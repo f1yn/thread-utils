@@ -28,7 +28,7 @@ import {
 } from './imageHashSharedTypes';
 
 import {
-	outputCopyTo,
+	outputFilesystem,
 	outputDryRunStats,
 	outputToHtml,
 } from './imageHashOutput';
@@ -276,6 +276,8 @@ if (isMainThread) {
 	} else if (commandOptions.outputMode === 'page') {
 		await outputToHtml(models);
 	} else if (commandOptions.outputMode === 'copy') {
-		await outputCopyTo(models);
+		await outputFilesystem(models);
+	} else if (commandOptions.outputMode === 'move') {
+		await outputFilesystem(models, true);
 	}
 }

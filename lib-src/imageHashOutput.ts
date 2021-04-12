@@ -107,10 +107,10 @@ export async function outputToHtml(models) {
 }
 
 /**
- * Takes the state of the DB and will clone the highest-size image per group to a local sandbox folder
+ * Takes the state of the DB and will clone (or move) the highest-size image per group to a local sandbox folder
  * @param models
  */
-export async function outputCopyTo(models) {
+export async function outputFilesystem(models, rename = false) {
 	const groupBatchSize = defaultByType(
 		commandOptions.outputCopyBatchSize,
 		'number',
@@ -151,13 +151,23 @@ export async function outputCopyTo(models) {
 					largestImage.path
 				)}`;
 
-				log('copying file', destFileName);
-				// copy file
-				await fs.copyFile(
-					largestImage.path,
-					path.join(outputFolder, destFileName)
-				);
-				log('done copying file', destFileName);
+				if (rename) {
+					log('moving file', destFileName);
+					// copy file
+					await fs.rename(
+						largestImage.path,
+						path.join(outputFolder, destFileName)
+					);
+					log('done moving file', destFileName);
+				} else {
+					log('copying file', destFileName);
+					// copy file
+					await fs.copyFile(
+						largestImage.path,
+						path.join(outputFolder, destFileName)
+					);
+					log('done copying file', destFileName);
+				}
 			},
 			log
 		);
